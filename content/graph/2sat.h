@@ -27,7 +27,7 @@ struct TwoSat {
 	TwoSat(int n = 0) : N(n), gr(2*n) {}
 
 	int addVar() { // (optional)
-		gr.emplace_back();
+		gr.emplace_back() ;
 		gr.emplace_back();
 		return N++;
 	}
