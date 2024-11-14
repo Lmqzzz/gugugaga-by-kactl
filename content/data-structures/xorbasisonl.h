@@ -1,3 +1,6 @@
+
+#pragma once
+
 namespace XOR_BASIS_ONLINE {
     template <typename T> bool umin(T &a, T b) { if (b < a) return a = b, true; return false; }
     template <typename T> bool umax(T &a, T b) { if (a < b) return a = b, true; return false; }
