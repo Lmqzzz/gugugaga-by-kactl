@@ -1,3 +1,5 @@
+#pragma once
+
 template <class T, T (*op) (T, T)> struct DisjointSparseTable {
     int n;
     vector <vector <T>> st;
