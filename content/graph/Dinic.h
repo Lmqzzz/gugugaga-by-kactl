@@ -1,53 +1,73 @@
-/**
- * Author: chilli
- * Date: 2019-04-26
- * License: CC0
- * Source: https://cp-algorithms.com/graph/dinic.html
- * Description: Flow algorithm with complexity $O(VE\log U)$ where $U = \max |\text{cap}|$.
- * $O(\min(E^{1/2}, V^{2/3})E)$ if $U = 1$; $O(\sqrt{V}E)$ for bipartite matching.
- * Status: Tested on SPOJ FASTFLOW and SPOJ MATCHING, stress-tested
- */
-#pragma once
+template <const int N, class T>
+class ScalingDinic_t {
+ public:
+  const bool SCALING = N > 32;
+  T lim = 1;
+  const T INF = numeric_limits<T>::max();
 
-struct Dinic {
-	struct Edge {
-		int to, rev;
-		ll c, oc;
-		ll flow() { return max(oc - c, 0LL); } // if you need flows
-	};
-	vi lvl, ptr, q;
-	vector<vector<Edge>> adj;
-	Dinic(int n) : lvl(n), ptr(n), q(n), adj(n) {}
-	void addEdge(int a, int b, ll c, ll rcap = 0) {
-		adj[a].push_back({b, sz(adj[b]), c, c});
-		adj[b].push_back({a, sz(adj[a]) - 1, rcap, rcap});
-	}
-	ll dfs(int v, int t, ll f) {
-		if (v == t || !f) return f;
-		for (int& i = ptr[v]; i < sz(adj[v]); i++) {
-			Edge& e = adj[v][i];
-			if (lvl[e.to] == lvl[v] + 1)
-				if (ll p = dfs(e.to, t, min(f, e.c))) {
-					e.c -= p, adj[e.to][e.rev].c += p;
-					return p;
-				}
-		}
-		return 0;
-	}
-	ll calc(int s, int t) {
-		ll flow = 0; q[0] = s;
-		rep(L,0,31) do { // 'int L=30' maybe faster for random data
-			lvl = ptr = vi(sz(q));
-			int qi = 0, qe = lvl[s] = 1;
-			while (qi < qe && !lvl[t]) {
-				int v = q[qi++];
-				for (Edge e : adj[v])
-					if (!lvl[e.to] && e.c >> (30 - L))
-						q[qe++] = e.to, lvl[e.to] = lvl[v] + 1;
-			}
-			while (ll p = dfs(s, t, LLONG_MAX)) flow += p;
-		} while (lvl[t]);
-		return flow;
-	}
-	bool leftOfMinCut(int a) { return lvl[a] != 0; }
+  class edge_t {
+   public:
+    int to;
+    T capa, flow;
+    edge_t(int to = 0, T capa = 0, T flow = 0) : to(to), capa(capa), flow(flow) {}
+  };
+
+  int dist[N], cur[N];
+  vector<int> adj[N];
+  vector<edge_t> edge;
+
+  void addEdge(const int &u, const int &v, T capa, bool is_directed = true) {
+    adj[u].emplace_back(edge.size());
+    edge.emplace_back(v, capa);
+    adj[v].emplace_back(edge.size());
+    edge.emplace_back(u, is_directed ? 0 : capa);
+  }
+
+  bool bfs(const int &s, const int &t) {
+    memset(dist, -1, sizeof dist);
+    queue<int> q;
+    q.emplace(s);
+    dist[s] = 0;
+    while (q.size()) {
+      int u = q.front();
+      q.pop();
+      for (const int &id : adj[u]) {
+        const int v = edge[id].to;
+        if (dist[v] != -1) continue;
+        if (edge[id].capa - edge[id].flow >= lim) {
+          dist[v] = dist[u] + 1;
+          q.emplace(v);
+        }
+      }
+    }
+    return dist[t] != -1;
+  }
+
+  T dfs(const int &u, const int &t, const T &flow) {
+    if (u == t || !flow) return flow;
+    for (int &i = cur[u]; i < adj[u].size(); i++) {
+      const int id = adj[u][i];
+      const int v = edge[id].to;
+      if (dist[v] != dist[u] + 1) continue;
+      if (T delta = dfs(v, t, min(flow, edge[id].capa - edge[id].flow))) {
+        edge[id].flow += delta;
+        edge[id ^ 1].flow -= delta;
+        return delta;
+      }
+    }
+    return 0;
+  }
+
+  int64_t maxFlow(const int &s, const int &t) {
+    int64_t ans = 0;
+    for (lim = SCALING ? (1 << 30) : 1; lim; lim >>= 1) {
+      while (bfs(s, t)) {
+        memset(cur, 0, sizeof cur);
+        while (T flow = dfs(s, t, INF)) {
+          ans += flow;
+        }
+      }
+    }
+    return ans;
+  }
 };
